@@ -25,7 +25,8 @@
     ],
     "win": {
       "target": "nsis",
-      "executableName": "TomWhatsBulkKeygen"
+      "executableName": "TomWhatsBulkKeygen",
+      "verifyUpdateCodeSignature": false
     },
     "nsis": {
       "oneClick": true,

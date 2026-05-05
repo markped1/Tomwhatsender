@@ -12,6 +12,8 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!node_modules/puppeteer/.local-chrome/**'
+  - '!node_modules/puppeteer/.local-chromium/**'
 asarUnpack:
   - resources/**
   - node_modules/sql.js/dist/sql-wasm.wasm
@@ -19,7 +21,9 @@ asarUnpack:
   - node_modules/puppeteer/.local-chromium/**/*
   - node_modules/@puppeteer/browsers/**/*
   - node_modules/node-machine-id/**/*
-
+electronFuses:
+  enableEmbeddedAsarIntegrityValidation: false
+  onlyLoadAppFromAsar: false
 win:
   executableName: WhatsAppBulkSender
   verifyUpdateCodeSignature: false

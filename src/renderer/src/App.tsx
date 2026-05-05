@@ -14,6 +14,14 @@ import {
 } from 'lucide-react'
 import { twistMessage } from './utils/twister'
 
+const RATE_PRESETS = [
+  { label: '1 / min',   id: '1min',   min: 55,  max: 65  },
+  { label: '1 / 3 min', id: '3min',   min: 170, max: 190 },
+  { label: '1 / 5 min', id: '5min',   min: 290, max: 310 },
+  { label: '1 / 10 min',id: '10min',  min: 590, max: 610 },
+  { label: 'Custom',    id: 'custom', min: null, max: null },
+]
+
 const AppLogo = () => (
   <div className="flex items-center gap-1">
     <div className="w-4 h-4 bg-[#25D366] rounded flex items-center justify-center">
@@ -44,7 +52,11 @@ function App() {
   const isSendingRef = useRef(false)
   const logEndRef = useRef<HTMLDivElement>(null)
   const [contactStatuses, setContactStatuses] = useState<Record<string, 'pending' | 'sending' | 'sent' | 'failed'>>({})
-  const [license, setLicense] = useState<{ valid: boolean; trialExpired: boolean; hoursLeft: number; machineId: string } | null>(null)
+  const [dailyLimit, setDailyLimit] = useState(300)
+  const [minDelay, setMinDelay] = useState(45)
+  const [maxDelay, setMaxDelay] = useState(120)
+  const [sendRatePreset, setSendRatePreset] = useState<string>('custom')
+  const [license, setLicense] = useState<{ valid: boolean; trialExpired: boolean; hoursLeft: number } | null>(null)
   const [licenseKey, setLicenseKey] = useState('')
   const [licenseError, setLicenseError] = useState('')
   // 2. Helpers (Defined BEFORE useEffect to avoid hoisting issues)
@@ -161,7 +173,9 @@ function App() {
            await api.addContacts([lead])
          }
        } catch (e: any) { console.error(e) }
-       await new Promise(r => setTimeout(r, 1000))
+       // Randomized delay 3–8s between checks to avoid detection
+       const delay = 3000 + Math.random() * 5000
+       await new Promise(r => setTimeout(r, delay))
     }
     setIsVerifying(false)
     isVerifyingRef.current = false
@@ -282,28 +296,43 @@ function App() {
     const api = (window as any).api;
     if (!api || !status.isReady) { setError("Connect WhatsApp"); return; }
     if (contacts.length === 0) { setError("No leads"); return; }
+    if (!messageTemplate.trim()) { setError("Type a message first"); return; }
+
     setIsSending(true)
     isSendingRef.current = true
-    // Reset all statuses to pending
+
     const initial: Record<string, 'pending' | 'sending' | 'sent' | 'failed'> = {}
     contacts.forEach(c => { initial[c.phone] = 'pending' })
     setContactStatuses(initial)
 
+    const DAILY_LIMIT = dailyLimit
+    let sentToday = 0
+
     for (const contact of contacts) {
-      if (!isSendingRef.current) break;
+      if (!isSendingRef.current) break
+      if (sentToday >= DAILY_LIMIT) {
+        setError(`Daily limit of ${DAILY_LIMIT} messages reached.`)
+        break
+      }
+
       setContactStatuses(prev => ({ ...prev, [contact.phone]: 'sending' }))
       try {
         let finalMessage = messageTemplate.replace('{name}', contact.name || '')
         if (isSmartTwistEnabled) finalMessage = twistMessage(finalMessage, 0.3)
         await api.sendMessage({ phone: contact.phone, message: finalMessage })
         setContactStatuses(prev => ({ ...prev, [contact.phone]: 'sent' }))
+        sentToday++
         await loadData()
       } catch (e) {
         console.error(e)
         setContactStatuses(prev => ({ ...prev, [contact.phone]: 'failed' }))
       }
-      await new Promise(r => setTimeout(r, 60000))
+
+      // Randomized delay between messages using user-configured range
+      const delay = (minDelay * 1000) + Math.random() * ((maxDelay - minDelay) * 1000)
+      await new Promise(r => setTimeout(r, delay))
     }
+
     setIsSending(false)
     isSendingRef.current = false
   }
@@ -417,6 +446,11 @@ function App() {
                      <div className="px-1.5 py-1 border-b bg-[#F0F2F5] shrink-0 flex items-center justify-between">
                         <span className="font-black text-[7px] text-gray-500 uppercase tracking-widest">QUEUE</span>
                         <div className="flex items-center gap-1.5">
+                           <span className="text-[7px] font-black text-[#00A884] bg-[#00A884]/10 px-1 py-0.5 rounded">
+                             {sendRatePreset !== 'custom'
+                               ? RATE_PRESETS.find(p => p.id === sendRatePreset)?.label
+                               : `${minDelay}–${maxDelay}s`}
+                           </span>
                            <span className="text-[7px] font-black text-gray-400">{contacts.filter(c => contactStatuses[c.phone] === 'sent').length}/{contacts.length}</span>
                            <button
                              onClick={async () => { await (window as any).api?.clearContacts(); setContactStatuses({}); loadData(); }}
@@ -460,10 +494,101 @@ function App() {
                </section>
              )}
 
-             {activeTab !== 'campaign' && activeTab !== 'generator' && activeTab !== 'history' && (
+             {activeTab !== 'campaign' && activeTab !== 'generator' && activeTab !== 'history' && activeTab !== 'settings' && (
                <section className="flex-1 flex flex-col bg-white rounded border p-3 items-center justify-center text-gray-400">
                   <span className="font-black text-[10px] uppercase tracking-widest">{activeTab} MODULE</span>
-                  <span className="text-[8px] mt-1 text-center">Coming soon.</span>
+               </section>
+             )}
+
+             {activeTab === 'settings' && (
+               <section className="flex-1 flex flex-col gap-1.5 min-w-0 overflow-hidden">
+                 <div className="bg-white rounded border p-3 flex flex-col gap-3 shadow-sm overflow-y-auto">
+                   <span className="font-black text-[10px] text-gray-400 uppercase tracking-widest">Send Settings</span>
+
+                   {/* Send Rate Presets */}
+                   <div className="flex flex-col gap-1.5">
+                     <span className="text-[7px] font-black text-gray-400 uppercase">Send Rate</span>
+                     <div className="grid grid-cols-2 gap-1">
+                       {RATE_PRESETS.map(preset => (
+                         <button
+                           key={preset.id}
+                           onClick={() => {
+                             setSendRatePreset(preset.id)
+                             if (preset.min !== null && preset.max !== null) {
+                               setMinDelay(preset.min)
+                               setMaxDelay(preset.max)
+                             }
+                           }}
+                           className={`py-1.5 px-2 rounded border text-[8px] font-black uppercase tracking-wide transition-all ${
+                             sendRatePreset === preset.id
+                               ? 'bg-[#00A884] text-white border-[#00A884] shadow-sm'
+                               : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-[#00A884] hover:text-[#00A884]'
+                           }`}
+                         >
+                           {preset.label}
+                         </button>
+                       ))}
+                     </div>
+                     <span className="text-[6px] text-gray-300">
+                       {sendRatePreset !== 'custom'
+                         ? `≈ 1 message every ${RATE_PRESETS.find(p => p.id === sendRatePreset)?.label.split('/ ')[1]} — delay auto-set`
+                         : 'Set your own min/max delay below'}
+                     </span>
+                   </div>
+
+                   <div className="flex flex-col gap-1">
+                     <span className="text-[7px] font-black text-gray-400 uppercase">Daily Send Limit</span>
+                     <div className="flex items-center gap-2">
+                       <input
+                         type="number"
+                         value={dailyLimit}
+                         onChange={e => setDailyLimit(parseInt(e.target.value) || 300)}
+                         className="w-full p-1.5 border rounded text-[9px] font-bold outline-none focus:border-[#00A884]"
+                       />
+                       <span className="text-[7px] text-gray-400 shrink-0">msgs/day</span>
+                     </div>
+                     <span className="text-[6px] text-gray-300">Recommended: 200–500 for aged numbers</span>
+                   </div>
+
+                   <div className="flex gap-2">
+                     <div className="flex flex-col gap-1 flex-1">
+                       <span className="text-[7px] font-black text-gray-400 uppercase">Min Delay</span>
+                       <div className="flex items-center gap-1">
+                         <input
+                           type="number"
+                           value={minDelay}
+                           onChange={e => { setMinDelay(parseInt(e.target.value) || 30); setSendRatePreset('custom') }}
+                           className="w-full p-1.5 border rounded text-[9px] font-bold outline-none focus:border-[#00A884]"
+                         />
+                         <span className="text-[7px] text-gray-400 shrink-0">sec</span>
+                       </div>
+                     </div>
+                     <div className="flex flex-col gap-1 flex-1">
+                       <span className="text-[7px] font-black text-gray-400 uppercase">Max Delay</span>
+                       <div className="flex items-center gap-1">
+                         <input
+                           type="number"
+                           value={maxDelay}
+                           onChange={e => { setMaxDelay(parseInt(e.target.value) || 120); setSendRatePreset('custom') }}
+                           className="w-full p-1.5 border rounded text-[9px] font-bold outline-none focus:border-[#00A884]"
+                         />
+                         <span className="text-[7px] text-gray-400 shrink-0">sec</span>
+                       </div>
+                     </div>
+                   </div>
+                   <span className="text-[6px] text-gray-300">Random delay between {minDelay}–{maxDelay}s per message. Higher = safer.</span>
+
+                   <div className="border-t pt-3 flex flex-col gap-1">
+                     <span className="font-black text-[9px] text-gray-500 uppercase">Anti-Ban Tips</span>
+                     <ul className="text-[7px] text-gray-400 space-y-1 list-disc pl-3">
+                       <li>Use numbers at least 3 months old</li>
+                       <li>Start with 50/day, increase gradually</li>
+                       <li>Keep Smart Twist ON always</li>
+                       <li>Avoid sending same message twice</li>
+                       <li>Don&apos;t run 24/7 — take breaks</li>
+                     </ul>
+                   </div>
+                 </div>
                </section>
              )}
 
@@ -668,23 +793,13 @@ function App() {
               <div className="text-center">
                 <div className="text-2xl mb-1">🔒</div>
                 <p className="text-[8px] font-black text-gray-500 uppercase tracking-wide">Trial period expired</p>
-                <p className="text-[7px] text-gray-400 mt-0.5">Send your Machine ID to the developer</p>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[7px] font-black text-gray-400 uppercase">Your Machine ID</span>
-                <div
-                  className="bg-gray-50 border rounded p-1.5 font-mono text-[7px] text-gray-600 break-all cursor-pointer select-all"
-                  onClick={() => navigator.clipboard.writeText(license.machineId)}
-                  title="Click to copy"
-                >
-                  {license.machineId}
-                </div>
-                <p className="text-[6px] text-gray-300 text-center">Click to copy</p>
+                <p className="text-[7px] text-gray-400 mt-0.5">Enter your serial key to continue</p>
               </div>
               <div className="flex flex-col gap-1.5">
                 <input
                   value={licenseKey}
                   onChange={e => setLicenseKey(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleActivateLicense()}
                   placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
                   className="w-full p-1.5 border rounded text-[9px] font-bold outline-none focus:border-[#00A884] font-mono"
                 />
@@ -695,6 +810,7 @@ function App() {
                 >
                   ACTIVATE
                 </button>
+                <p className="text-[6px] text-gray-300 text-center">Contact your vendor for a serial key</p>
               </div>
             </div>
           </div>

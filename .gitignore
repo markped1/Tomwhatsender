@@ -14,4 +14,6 @@ admin_release/win-unpacked
 admin_release/node_modules
 admin_release/*.exe
 admin_release/*.blockmap
+admin_release/builder-*.yml
+admin_release/builder-effective-config.yaml
 build

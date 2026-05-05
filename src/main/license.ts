@@ -3,7 +3,7 @@ import path from 'path'
 import crypto from 'crypto'
 import { app } from 'electron'
 import { machineIdSync } from 'node-machine-id'
-import { getLicenseDoc, claimLicense } from './firebase'
+import { getLicenseDoc, claimLicense } from './supabase'
 
 const licenseFile = path.join(app.getPath('userData'), 'license.json')
 

@@ -149,15 +149,19 @@
   async function supabaseInsert(key, data) {
     const res = await fetch(`${BASE}/licenses`, {
       method: 'POST',
-      headers: HEADERS,
-      body: JSON.stringify({ key, ...data })
+      headers: { ...HEADERS, Prefer: 'return=minimal' },
+      body: JSON.stringify({ id: key, ...data })
     })
+    if (!res.ok) {
+      const err = await res.text()
+      console.error('Insert failed:', res.status, err)
+    }
     return res.ok
   }
 
   // UPDATE a license key in Supabase
   async function supabaseUpdate(key, data) {
-    const res = await fetch(`${BASE}/licenses?key=eq.${encodeURIComponent(key)}`, {
+    const res = await fetch(`${BASE}/licenses?id=eq.${encodeURIComponent(key)}`, {
       method: 'PATCH',
       headers: { ...HEADERS, Prefer: 'return=minimal' },
       body: JSON.stringify(data)
@@ -184,15 +188,18 @@
 
     let lastKey = ''
     let ok = 0
+    let lastError = ''
     for (let i = 0; i < qty; i++) {
       const key = randomKey()
-      const saved = await supabaseInsert(key, {
-        active: true,
-        machine_id: '',
-        created_at: Date.now(),
-        claimed_at: 0,
-      })
-      if (saved) { ok++; lastKey = key }
+      try {
+        const res = await fetch(`${BASE}/licenses`, {
+          method: 'POST',
+          headers: { ...HEADERS, Prefer: 'return=minimal' },
+          body: JSON.stringify({ id: key, active: true, machine_id: null, claimed_at: null })
+        })
+        if (res.ok) { ok++; lastKey = key }
+        else { lastError = `HTTP ${res.status}: ${await res.text()}` }
+      } catch(e) { lastError = e.message }
       status.textContent = `Generating... ${i+1}/${qty}`
     }
 
@@ -205,7 +212,7 @@
       loadKeys()
     } else {
       status.className = 'status err'
-      status.textContent = '✗ Failed — check Supabase config & table setup'
+      status.textContent = `✗ Failed: ${lastError}`
     }
   }
 
@@ -229,9 +236,9 @@
       const status = !k.active ? 'disabled' : k.machine_id ? 'claimed' : 'unused'
       const label = status === 'disabled' ? 'Revoked' : status === 'claimed' ? 'In Use' : 'Available'
       const machine = k.machine_id ? `<span class="machine" title="${k.machine_id}">${k.machine_id.slice(0,16)}…</span>` : ''
-      const revoke = k.active ? `<button class="revoke-btn" onclick="revokeKey('${k.key}')">Revoke</button>` : ''
+      const revoke = k.active ? `<button class="revoke-btn" onclick="revokeKey('${k.id}')">Revoke</button>` : ''
       return `<div class="key-row">
-        <span class="k">${k.key}</span>
+        <span class="k">${k.id}</span>
         ${machine}
         <span class="pill ${status}">${label}</span>
         ${revoke}

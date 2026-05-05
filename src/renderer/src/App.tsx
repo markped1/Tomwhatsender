@@ -214,6 +214,9 @@ function App() {
     } catch(e) { console.error(e) }
   }
 
+  const [verifyOnImport, setVerifyOnImport] = useState(false)
+  const [isVerifyingImport, setIsVerifyingImport] = useState(false)
+
   const handleImportContacts = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -226,28 +229,46 @@ function App() {
       const api = (window as any).api;
       if (!api) return;
       
-      const newContacts: any[] = [];
+      const parsed: any[] = [];
       lines.forEach((line, i) => {
         const parts = line.split(',');
         let phone = parts[0]?.trim() || '';
-        phone = phone.replace(/\D/g, ''); // Extract only digits
-        
+        phone = phone.replace(/\D/g, '');
         if (phone.length > 5) {
-          newContacts.push({ phone, name: parts[1]?.trim() || `Imported ${i+1}` });
+          parsed.push({ phone, name: parts[1]?.trim() || `Imported ${i+1}` });
         }
       });
-      
-      if (newContacts.length > 0) {
-        await api.addContacts(newContacts);
-        await loadData();
-        setSuccess(`Imported ${newContacts.length} numbers successfully!`);
-        setError(null);
+
+      if (parsed.length === 0) { setError('No valid numbers found in file.'); return; }
+
+      if (verifyOnImport) {
+        if (!status.isReady) { setError('Connect WhatsApp first to verify numbers.'); return; }
+        setIsVerifyingImport(true)
+        setSuccess(`Verifying ${parsed.length} numbers...`)
+        const verified: any[] = []
+        for (const contact of parsed) {
+          try {
+            const isReg = await api.isRegistered(contact.phone)
+            if (isReg) verified.push(contact)
+          } catch (_) {}
+          await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
+        }
+        setIsVerifyingImport(false)
+        if (verified.length > 0) {
+          await api.addContacts(verified)
+          await loadData()
+          setSuccess(`Verified & imported ${verified.length}/${parsed.length} active WhatsApp numbers.`)
+        } else {
+          setError('No active WhatsApp numbers found in file.')
+        }
       } else {
-        setError('No valid numbers found in file.');
+        await api.addContacts(parsed);
+        await loadData();
+        setSuccess(`Imported ${parsed.length} numbers successfully!`);
       }
+      setError(null);
     };
     reader.readAsText(file);
-    // Reset file input
     e.target.value = '';
   }
 
@@ -424,10 +445,18 @@ function App() {
                      </div>
                      <div className="mt-1 flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-1.5 bg-gray-50 border rounded px-1.5 py-0.5 shadow-sm">
-                           <label className="cursor-pointer flex items-center gap-1 text-[8px] font-black text-[#00A884] uppercase tracking-wider hover:text-[#009272] transition-colors">
-                              <Plus className="w-2.5 h-2.5" /> IMPORT
-                              <input type="file" accept=".csv,.txt" className="hidden" onChange={handleImportContacts} />
+                           <label className={`cursor-pointer flex items-center gap-1 text-[8px] font-black uppercase tracking-wider transition-colors ${isVerifyingImport ? 'text-gray-300 pointer-events-none' : 'text-[#00A884] hover:text-[#009272]'}`}>
+                              <Plus className="w-2.5 h-2.5" /> {isVerifyingImport ? 'VERIFYING...' : 'IMPORT'}
+                              <input type="file" accept=".csv,.txt" className="hidden" onChange={handleImportContacts} disabled={isVerifyingImport} />
                            </label>
+                           <div className="w-px h-3 bg-gray-200 mx-0.5" />
+                           <button
+                             onClick={() => setVerifyOnImport(v => !v)}
+                             title="When ON, imported numbers are checked against WhatsApp before being added"
+                             className={`flex items-center gap-0.5 text-[7px] font-black uppercase tracking-wider px-1 py-0.5 rounded transition-all ${verifyOnImport ? 'bg-[#25D366] text-white' : 'text-gray-400 hover:text-[#00A884]'}`}
+                           >
+                             <CheckCheck className="w-2 h-2" /> VERIFY
+                           </button>
                            <div className="w-px h-3 bg-gray-200 mx-0.5" />
                            <span className="text-[7px] font-black text-gray-400">QUEUED: {contacts.length}</span>
                         </div>

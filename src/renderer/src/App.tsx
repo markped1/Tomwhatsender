@@ -378,7 +378,7 @@ function App() {
         {license && !license.trialExpired && license.hoursLeft > 0 && (
           <div className="bg-yellow-400 text-black px-2 py-0.5 flex items-center justify-between text-[7px] font-black">
             <span>⏳ TRIAL: {Math.floor(license.hoursLeft)}h {Math.floor((license.hoursLeft % 1) * 60)}m remaining</span>
-            <span className="opacity-60 uppercase tracking-wider">Enter serial key to unlock</span>
+            <button onClick={() => setActiveTab('settings')} className="bg-black/10 hover:bg-black/20 px-1.5 py-0.5 rounded uppercase tracking-wider transition-colors">Activate Now →</button>
           </div>
         )}
       </header>
@@ -616,6 +616,45 @@ function App() {
                        <li>Avoid sending same message twice</li>
                        <li>Don&apos;t run 24/7 — take breaks</li>
                      </ul>
+                   </div>
+
+                   {/* License Activation — always visible so users can activate anytime */}
+                   <div className="border-t pt-3 flex flex-col gap-2">
+                     <div className="flex items-center justify-between">
+                       <span className="font-black text-[9px] text-gray-500 uppercase">License</span>
+                       {license?.valid && !license?.trialExpired && license?.hoursLeft === 0 && (
+                         <span className="text-[7px] font-black text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded">✓ ACTIVATED</span>
+                       )}
+                       {license?.valid && license?.hoursLeft > 0 && (
+                         <span className="text-[7px] font-black text-yellow-600 bg-yellow-50 px-1.5 py-0.5 rounded">
+                           ⏳ {Math.floor(license.hoursLeft)}h {Math.floor((license.hoursLeft % 1) * 60)}m trial left
+                         </span>
+                       )}
+                       {license?.trialExpired && (
+                         <span className="text-[7px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded">✗ EXPIRED</span>
+                       )}
+                     </div>
+                     {license?.hoursLeft === 0 && !license?.trialExpired ? (
+                       <p className="text-[7px] text-[#25D366] font-black">App is fully activated. No action needed.</p>
+                     ) : (
+                       <>
+                         <input
+                           value={licenseKey}
+                           onChange={e => setLicenseKey(e.target.value)}
+                           onKeyDown={e => e.key === 'Enter' && handleActivateLicense()}
+                           placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
+                           className="w-full p-1.5 border rounded text-[9px] font-bold outline-none focus:border-[#00A884] font-mono"
+                         />
+                         {licenseError && <p className="text-[7px] text-red-500 font-black">{licenseError}</p>}
+                         <button
+                           onClick={handleActivateLicense}
+                           className="w-full py-1.5 bg-[#00A884] text-white rounded font-black text-[9px] uppercase tracking-widest hover:bg-[#009272] transition-colors"
+                         >
+                           ACTIVATE NOW
+                         </button>
+                         <p className="text-[6px] text-gray-300 text-center">Enter your serial key to unlock the full app</p>
+                       </>
+                     )}
                    </div>
                  </div>
                </section>

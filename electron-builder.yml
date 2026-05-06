@@ -58,6 +58,8 @@ appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 nodeGypRebuild: false
+buildDependenciesFromSource: false
+nativeRebuilder: sequential
 publish:
   provider: generic
   url: https://example.com/auto-updates

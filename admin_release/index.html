@@ -9,157 +9,225 @@
       font-family: 'Segoe UI', sans-serif;
       background: #0f172a;
       color: #e2e8f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       min-height: 100vh;
-      padding: 20px;
+      padding: 24px 16px;
     }
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 28px;
-      width: 400px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-    .logo { text-align: center; margin-bottom: 20px; }
-    .logo h1 { font-size: 13px; font-weight: 900; color: #25D366; letter-spacing: 3px; text-transform: uppercase; }
-    .logo p { font-size: 9px; color: #64748b; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
-    .badge {
-      display: inline-block; background: #1e3a2f; color: #25D366;
-      font-size: 8px; font-weight: 700; padding: 2px 10px;
-      border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;
-    }
-    .db-badge {
-      display: inline-block; background: #1e2a3a; color: #3ECF8E;
-      font-size: 7px; font-weight: 700; padding: 2px 8px;
-      border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;
-    }
-    label { display: block; font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; margin-top: 14px; }
-    input, select {
-      width: 100%; padding: 9px 12px;
-      background: #0f172a; border: 1px solid #334155; border-radius: 6px;
-      color: #e2e8f0; font-size: 11px; outline: none; transition: border-color 0.2s;
-    }
-    input:focus, select:focus { border-color: #25D366; }
-    select option { background: #1e293b; }
-    .btn {
-      width: 100%; padding: 11px; background: #25D366; color: #0f172a;
-      border: none; border-radius: 6px; font-size: 11px; font-weight: 900;
-      text-transform: uppercase; letter-spacing: 2px; cursor: pointer;
-      transition: background 0.2s; margin-top: 16px;
-    }
+    .wrap { max-width: 780px; margin: 0 auto; }
+
+    /* Header */
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .logo-block h1 { font-size: 14px; font-weight: 900; color: #25D366; letter-spacing: 3px; text-transform: uppercase; }
+    .logo-block p { font-size: 9px; color: #64748b; margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+    .badges { display: flex; gap: 6px; align-items: center; }
+    .badge { display: inline-block; background: #1e3a2f; color: #25D366; font-size: 8px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }
+    .badge.blue { background: #1e2a3a; color: #3ECF8E; }
+
+    /* Stats bar */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; text-align: center; }
+    .stat .val { font-size: 22px; font-weight: 900; }
+    .stat .lbl { font-size: 8px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+    .stat.total .val { color: #e2e8f0; }
+    .stat.avail .val { color: #25D366; }
+    .stat.active .val { color: #60a5fa; }
+    .stat.revoked .val { color: #f87171; }
+
+    /* Generate panel */
+    .gen-panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+    .gen-panel h2 { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .gen-row { display: flex; gap: 10px; align-items: flex-end; }
+    .gen-row select { flex: 0 0 140px; padding: 9px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 11px; outline: none; }
+    .gen-row select:focus { border-color: #25D366; }
+    .gen-row select option { background: #1e293b; }
+    .btn { padding: 10px 20px; background: #25D366; color: #0f172a; border: none; border-radius: 6px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
     .btn:hover { background: #1ebe57; }
     .btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-    .result {
-      margin-top: 16px; background: #0f172a; border: 1px solid #25D366;
-      border-radius: 8px; padding: 14px; display: none;
-    }
-    .key-text {
-      font-family: monospace; font-size: 18px; font-weight: 900;
-      color: #25D366; letter-spacing: 3px; text-align: center;
-      cursor: pointer; padding: 6px 0;
-    }
-    .copy-hint { font-size: 9px; color: #64748b; text-align: center; margin-top: 4px; }
+    .gen-status { font-size: 10px; margin-top: 10px; min-height: 16px; }
+    .gen-status.ok { color: #25D366; }
+    .gen-status.err { color: #f87171; }
+
+    /* Last key result */
+    .last-key { margin-top: 12px; background: #0f172a; border: 1px solid #25D366; border-radius: 8px; padding: 12px; display: none; }
+    .last-key .lbl { font-size: 8px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .key-text { font-family: monospace; font-size: 17px; font-weight: 900; color: #25D366; letter-spacing: 3px; cursor: pointer; }
+    .copy-hint { font-size: 9px; color: #64748b; margin-top: 4px; }
     .copied { color: #25D366 !important; }
-    .status { font-size: 10px; margin-top: 10px; text-align: center; min-height: 16px; }
-    .status.ok { color: #25D366; }
-    .status.err { color: #f87171; }
-    .keys-list { margin-top: 20px; border-top: 1px solid #334155; padding-top: 16px; }
-    .keys-list h3 { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-    .key-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 7px 10px; background: #0f172a; border-radius: 6px; margin-bottom: 6px;
-      font-size: 10px;
-    }
-    .key-row .k { font-family: monospace; color: #e2e8f0; letter-spacing: 1px; }
-    .key-row .machine { font-size: 8px; color: #64748b; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pill {
-      font-size: 7px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
-      text-transform: uppercase; letter-spacing: 1px;
-    }
+
+    /* Keys table */
+    .table-panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; overflow: hidden; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #334155; gap: 10px; flex-wrap: wrap; }
+    .table-header h2 { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+    .table-controls { display: flex; gap: 8px; align-items: center; }
+    .filter-select { padding: 5px 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 10px; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #25D366; }
+    .refresh-btn { background: none; border: 1px solid #334155; color: #25D366; font-size: 10px; padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .refresh-btn:hover { background: #1e3a2f; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #0f172a; }
+    thead th { padding: 8px 12px; font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; text-align: left; white-space: nowrap; }
+    tbody tr { border-top: 1px solid #1e293b; transition: background 0.15s; }
+    tbody tr:hover { background: #162032; }
+    tbody td { padding: 9px 12px; font-size: 10px; vertical-align: middle; }
+    .td-key { font-family: monospace; color: #e2e8f0; letter-spacing: 1px; font-size: 11px; }
+    .td-date { color: #94a3b8; font-size: 9px; white-space: nowrap; }
+    .td-date.live { color: #25D366; font-weight: 700; }
+    .td-machine { color: #64748b; font-size: 9px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill { display: inline-block; font-size: 7px; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
     .pill.unused { background: #1e3a2f; color: #25D366; }
     .pill.claimed { background: #1e2a3a; color: #60a5fa; }
     .pill.disabled { background: #3a1e1e; color: #f87171; }
-    .revoke-btn {
-      font-size: 8px; color: #f87171; background: none; border: none;
-      cursor: pointer; padding: 2px 6px; border-radius: 4px;
-    }
+    .actions { display: flex; gap: 4px; align-items: center; }
+    .copy-row-btn { background: none; border: 1px solid #334155; color: #94a3b8; font-size: 8px; padding: 2px 7px; border-radius: 4px; cursor: pointer; transition: all 0.15s; }
+    .copy-row-btn:hover { border-color: #25D366; color: #25D366; }
+    .revoke-btn { background: none; border: 1px solid #3a1e1e; color: #f87171; font-size: 8px; padding: 2px 7px; border-radius: 4px; cursor: pointer; transition: all 0.15s; }
     .revoke-btn:hover { background: #3a1e1e; }
+    .restore-btn { background: none; border: 1px solid #1e3a2f; color: #25D366; font-size: 8px; padding: 2px 7px; border-radius: 4px; cursor: pointer; transition: all 0.15s; }
+    .restore-btn:hover { background: #1e3a2f; }
+
+    /* Pagination */
+    .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #334155; }
+    .page-info { font-size: 9px; color: #64748b; }
+    .page-btns { display: flex; gap: 6px; }
+    .page-btn { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; font-size: 9px; padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+    .page-btn:hover:not(:disabled) { border-color: #25D366; color: #25D366; }
+    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .page-btn.active { background: #25D366; color: #0f172a; border-color: #25D366; font-weight: 700; }
+
+    .empty { padding: 32px; text-align: center; color: #64748b; font-size: 11px; }
   </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">
-    <h1>TomWhatsBulk</h1>
-    <p>License Key Manager</p>
-    <span class="badge">🔐 Admin Panel</span>
-    <br>
-    <span class="db-badge">⚡ Supabase</span>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-block">
+      <h1>TomWhatsBulk</h1>
+      <p>License Key Manager — Admin Panel</p>
+    </div>
+    <div class="badges">
+      <span class="badge">🔐 Admin</span>
+      <span class="badge blue">⚡ Supabase</span>
+    </div>
   </div>
 
-  <!-- Supabase config -->
-  <script>
-    const SUPABASE = {
-      url: 'https://lcjrzupdwanyzuyshqul.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjanJ6dXBkd2FueXp1eXNocXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDEwMjcsImV4cCI6MjA5MDM3NzAyN30.GUVYLkK2691gIeV9s2Wfs1gEzY-KXjQxn1dcdm9Q_uA',
-    }
-    const BASE = `${SUPABASE.url}/rest/v1`
-    const HEADERS = {
-      apikey: SUPABASE.anonKey,
-      Authorization: `Bearer ${SUPABASE.anonKey}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    }
-  </script>
-
-  <label>Number of Keys to Generate</label>
-  <select id="qty">
-    <option value="1">1 key</option>
-    <option value="5">5 keys</option>
-    <option value="10" selected>10 keys</option>
-    <option value="25">25 keys</option>
-    <option value="50">50 keys</option>
-  </select>
-
-  <button class="btn" id="genBtn" onclick="generateKeys()">Generate & Save to Supabase</button>
-  <div class="status" id="genStatus"></div>
-
-  <div class="result" id="lastResult">
-    <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Last Generated Key</div>
-    <div class="key-text" id="keyDisplay" onclick="copyKey()"></div>
-    <div class="copy-hint" id="copyHint">Click to copy</div>
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat total"><div class="val" id="statTotal">—</div><div class="lbl">Total Keys</div></div>
+    <div class="stat avail"><div class="val" id="statAvail">—</div><div class="lbl">Available</div></div>
+    <div class="stat active"><div class="val" id="statActive">—</div><div class="lbl">In Use</div></div>
+    <div class="stat revoked"><div class="val" id="statRevoked">—</div><div class="lbl">Revoked</div></div>
   </div>
 
-  <div class="keys-list">
-    <h3>All Keys <span id="keyCount" style="color:#64748b"></span> <button onclick="loadKeys()" style="background:none;border:none;color:#25D366;font-size:9px;cursor:pointer;margin-left:8px;">↻ Refresh</button></h3>
-    <div id="keysList"></div>
+  <!-- Generate Panel -->
+  <div class="gen-panel">
+    <h2>Generate New Keys</h2>
+    <div class="gen-row">
+      <select id="qty">
+        <option value="1">1 key</option>
+        <option value="5">5 keys</option>
+        <option value="10" selected>10 keys</option>
+        <option value="25">25 keys</option>
+        <option value="50">50 keys</option>
+        <option value="100">100 keys</option>
+      </select>
+      <button class="btn" id="genBtn" onclick="generateKeys()">Generate & Save</button>
+    </div>
+    <div class="gen-status" id="genStatus"></div>
+    <div class="last-key" id="lastResult">
+      <div class="lbl">Last Generated Key — click to copy</div>
+      <div class="key-text" id="keyDisplay" onclick="copyLastKey()"></div>
+      <div class="copy-hint" id="copyHint">Click to copy</div>
+    </div>
   </div>
+
+  <!-- Keys Table -->
+  <div class="table-panel">
+    <div class="table-header">
+      <h2>All Keys <span id="keyCount" style="color:#64748b;font-weight:400"></span></h2>
+      <div class="table-controls">
+        <select class="filter-select" id="filterStatus" onchange="applyFilter()">
+          <option value="all">All Status</option>
+          <option value="unused">Available</option>
+          <option value="claimed">In Use</option>
+          <option value="disabled">Revoked</option>
+        </select>
+        <button class="refresh-btn" onclick="loadKeys()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Serial Key</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Went Live</th>
+          <th>Machine ID</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="keysBody">
+        <tr><td colspan="7" class="empty">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      <div class="page-info" id="pageInfo">—</div>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
+  const SUPABASE = {
+    url: 'https://lcjrzupdwanyzuyshqul.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjanJ6dXBkd2FueXp1eXNocXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDEwMjcsImV4cCI6MjA5MDM3NzAyN30.GUVYLkK2691gIeV9s2Wfs1gEzY-KXjQxn1dcdm9Q_uA',
+  }
+  const BASE = `${SUPABASE.url}/rest/v1`
+  const HEADERS = {
+    apikey: SUPABASE.anonKey,
+    Authorization: `Bearer ${SUPABASE.anonKey}`,
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation',
+  }
+
+  const PAGE_SIZE = 10
+  let allKeys = []
+  let filteredKeys = []
+  let currentPage = 1
+
   function randomKey() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
     const seg = () => Array.from({length: 5}, () => chars[Math.floor(Math.random() * chars.length)]).join('')
     return `${seg()}-${seg()}-${seg()}-${seg()}`
   }
 
-  // INSERT a new license key into Supabase
-  async function supabaseInsert(key, data) {
-    const res = await fetch(`${BASE}/licenses`, {
-      method: 'POST',
-      headers: { ...HEADERS, Prefer: 'return=minimal' },
-      body: JSON.stringify({ id: key, ...data })
-    })
-    if (!res.ok) {
-      const err = await res.text()
-      console.error('Insert failed:', res.status, err)
-    }
-    return res.ok
+  function fmtDate(iso) {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   }
 
-  // UPDATE a license key in Supabase
+  function fmtDateShort(iso) {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  async function supabaseList() {
+    const res = await fetch(`${BASE}/licenses?select=*&order=created_at.desc`, {
+      headers: { apikey: SUPABASE.anonKey, Authorization: `Bearer ${SUPABASE.anonKey}` }
+    })
+    if (!res.ok) return []
+    return res.json()
+  }
+
   async function supabaseUpdate(key, data) {
     const res = await fetch(`${BASE}/licenses?id=eq.${encodeURIComponent(key)}`, {
       method: 'PATCH',
@@ -169,84 +237,180 @@
     return res.ok
   }
 
-  // LIST all license keys from Supabase
-  async function supabaseList() {
-    const res = await fetch(`${BASE}/licenses?select=*&order=created_at.desc`, {
-      headers: { apikey: SUPABASE.anonKey, Authorization: `Bearer ${SUPABASE.anonKey}` }
+  function updateStats(keys) {
+    const total = keys.length
+    const avail = keys.filter(k => k.active && !k.machine_id).length
+    const active = keys.filter(k => k.active && k.machine_id).length
+    const revoked = keys.filter(k => !k.active).length
+    document.getElementById('statTotal').textContent = total
+    document.getElementById('statAvail').textContent = avail
+    document.getElementById('statActive').textContent = active
+    document.getElementById('statRevoked').textContent = revoked
+  }
+
+  function applyFilter() {
+    const f = document.getElementById('filterStatus').value
+    filteredKeys = allKeys.filter(k => {
+      const s = !k.active ? 'disabled' : k.machine_id ? 'claimed' : 'unused'
+      return f === 'all' || s === f
     })
-    if (!res.ok) return []
-    return res.json()
+    currentPage = 1
+    renderTable()
+  }
+
+  function renderTable() {
+    const body = document.getElementById('keysBody')
+    const total = filteredKeys.length
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+    currentPage = Math.min(currentPage, totalPages)
+    const start = (currentPage - 1) * PAGE_SIZE
+    const page = filteredKeys.slice(start, start + PAGE_SIZE)
+
+    document.getElementById('keyCount').textContent = `(${total})`
+    document.getElementById('pageInfo').textContent =
+      total === 0 ? 'No keys' : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, total)} of ${total}`
+
+    if (page.length === 0) {
+      body.innerHTML = `<tr><td colspan="7" class="empty">No keys found</td></tr>`
+    } else {
+      body.innerHTML = page.map((k, i) => {
+        const rowNum = start + i + 1
+        const status = !k.active ? 'disabled' : k.machine_id ? 'claimed' : 'unused'
+        const label = status === 'disabled' ? 'Revoked' : status === 'claimed' ? 'In Use' : 'Available'
+        const machine = k.machine_id
+          ? `<span class="td-machine" title="${k.machine_id}">${k.machine_id.slice(0,14)}…</span>`
+          : '<span style="color:#334155">—</span>'
+        const wentLive = k.claimed_at
+          ? `<span class="td-date live" title="${fmtDate(k.claimed_at)}">🟢 ${fmtDateShort(k.claimed_at)}</span>`
+          : '<span style="color:#334155">Not activated</span>'
+        const created = k.created_at
+          ? `<span class="td-date">${fmtDateShort(k.created_at)}</span>`
+          : '<span style="color:#334155">—</span>'
+        const revokeBtn = k.active
+          ? `<button class="revoke-btn" onclick="revokeKey('${k.id}')">Revoke</button>`
+          : `<button class="restore-btn" onclick="restoreKey('${k.id}')">Restore</button>`
+        return `<tr>
+          <td style="color:#475569;font-size:9px">${rowNum}</td>
+          <td class="td-key">${k.id}</td>
+          <td><span class="pill ${status}">${label}</span></td>
+          <td>${created}</td>
+          <td>${wentLive}</td>
+          <td>${machine}</td>
+          <td><div class="actions">
+            <button class="copy-row-btn" onclick="copyKey('${k.id}')">Copy</button>
+            ${revokeBtn}
+          </div></td>
+        </tr>`
+      }).join('')
+    }
+
+    renderPagination(totalPages)
+  }
+
+  function renderPagination(totalPages) {
+    const container = document.getElementById('pageBtns')
+    if (totalPages <= 1) { container.innerHTML = ''; return }
+
+    let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>`
+
+    // Show page numbers with ellipsis
+    const pages = []
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) {
+        pages.push(p)
+      } else if (pages[pages.length - 1] !== '…') {
+        pages.push('…')
+      }
+    }
+    for (const p of pages) {
+      if (p === '…') {
+        html += `<span style="color:#475569;padding:0 4px;font-size:10px">…</span>`
+      } else {
+        html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`
+      }
+    }
+
+    html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>`
+    container.innerHTML = html
+  }
+
+  function goPage(p) {
+    const totalPages = Math.ceil(filteredKeys.length / PAGE_SIZE)
+    if (p < 1 || p > totalPages) return
+    currentPage = p
+    renderTable()
+  }
+
+  async function loadKeys() {
+    document.getElementById('keysBody').innerHTML = `<tr><td colspan="7" class="empty">Loading...</td></tr>`
+    allKeys = await supabaseList()
+    updateStats(allKeys)
+    applyFilter()
   }
 
   async function generateKeys() {
     const qty = parseInt(document.getElementById('qty').value)
     const btn = document.getElementById('genBtn')
-    const status = document.getElementById('genStatus')
+    const statusEl = document.getElementById('genStatus')
     btn.disabled = true
-    status.className = 'status'
-    status.textContent = `Generating ${qty} key(s)...`
+    statusEl.className = 'gen-status'
+    statusEl.textContent = `Generating ${qty} key(s)...`
 
     let lastKey = ''
     let ok = 0
     let lastError = ''
+    const now = new Date().toISOString()
+
     for (let i = 0; i < qty; i++) {
       const key = randomKey()
       try {
         const res = await fetch(`${BASE}/licenses`, {
           method: 'POST',
           headers: { ...HEADERS, Prefer: 'return=minimal' },
-          body: JSON.stringify({ id: key, active: true, machine_id: null, claimed_at: null })
+          body: JSON.stringify({ id: key, active: true, machine_id: null, claimed_at: null, created_at: now })
         })
         if (res.ok) { ok++; lastKey = key }
         else { lastError = `HTTP ${res.status}: ${await res.text()}` }
       } catch(e) { lastError = e.message }
-      status.textContent = `Generating... ${i+1}/${qty}`
+      statusEl.textContent = `Saving... ${i + 1}/${qty}`
     }
 
     btn.disabled = false
     if (ok > 0) {
-      status.className = 'status ok'
-      status.textContent = `✓ ${ok} key(s) saved to Supabase`
+      statusEl.className = 'gen-status ok'
+      statusEl.textContent = `✓ ${ok} key(s) generated and saved`
       document.getElementById('keyDisplay').textContent = lastKey
       document.getElementById('lastResult').style.display = 'block'
       loadKeys()
     } else {
-      status.className = 'status err'
-      status.textContent = `✗ Failed: ${lastError}`
+      statusEl.className = 'gen-status err'
+      statusEl.textContent = `✗ Failed: ${lastError}`
     }
   }
 
   async function revokeKey(key) {
-    if (!confirm(`Revoke key ${key}? This will lock out the user.`)) return
+    if (!confirm(`Revoke key ${key}?\n\nThis will immediately lock out the user.`)) return
     await supabaseUpdate(key, { active: false })
     loadKeys()
   }
 
-  async function loadKeys() {
-    const list = document.getElementById('keysList')
-    const count = document.getElementById('keyCount')
-    list.innerHTML = '<div style="font-size:9px;color:#64748b;padding:8px 0">Loading...</div>'
-    const keys = await supabaseList()
-    count.textContent = `(${keys.length})`
-    if (keys.length === 0) {
-      list.innerHTML = '<div style="font-size:9px;color:#64748b;padding:8px 0">No keys yet</div>'
-      return
-    }
-    list.innerHTML = keys.map(k => {
-      const status = !k.active ? 'disabled' : k.machine_id ? 'claimed' : 'unused'
-      const label = status === 'disabled' ? 'Revoked' : status === 'claimed' ? 'In Use' : 'Available'
-      const machine = k.machine_id ? `<span class="machine" title="${k.machine_id}">${k.machine_id.slice(0,16)}…</span>` : ''
-      const revoke = k.active ? `<button class="revoke-btn" onclick="revokeKey('${k.id}')">Revoke</button>` : ''
-      return `<div class="key-row">
-        <span class="k">${k.id}</span>
-        ${machine}
-        <span class="pill ${status}">${label}</span>
-        ${revoke}
-      </div>`
-    }).join('')
+  async function restoreKey(key) {
+    if (!confirm(`Restore key ${key}?\n\nThis will re-enable the key and allow the user to log in again.`)) return
+    await supabaseUpdate(key, { active: true })
+    loadKeys()
   }
 
-  function copyKey() {
+  function copyKey(key) {
+    navigator.clipboard.writeText(key)
+    // Brief visual feedback — find the button and flash it
+    const btns = document.querySelectorAll('.copy-row-btn')
+    btns.forEach(b => { if (b.getAttribute('onclick') === `copyKey('${key}')`) {
+      const orig = b.textContent; b.textContent = '✓'; b.style.color = '#25D366'
+      setTimeout(() => { b.textContent = orig; b.style.color = '' }, 1500)
+    }})
+  }
+
+  function copyLastKey() {
     const key = document.getElementById('keyDisplay').textContent
     navigator.clipboard.writeText(key)
     const hint = document.getElementById('copyHint')
@@ -255,7 +419,6 @@
     setTimeout(() => { hint.textContent = 'Click to copy'; hint.classList.remove('copied') }, 2000)
   }
 
-  // Load keys on open
   loadKeys()
 </script>
 </body>

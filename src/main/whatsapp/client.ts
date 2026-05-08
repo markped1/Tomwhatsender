@@ -24,19 +24,22 @@ function findChromeExe(dir: string): string | null {
 
 function getChromiumPath(): string {
   if (app.isPackaged) {
-    // Search inside bundled app
     const base = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'puppeteer')
     const found = findChromeExe(base)
     if (found) {
       console.log('[WA] Found bundled Chrome at:', found)
       return found
     }
-    console.warn('[WA] Bundled Chrome not found, falling back to system puppeteer path')
+    console.warn('[WA] Bundled Chrome not found, falling back to puppeteer default')
   }
-  // Dev or fallback
   const p = executablePath()
   console.log('[WA] Using puppeteer default Chrome:', p)
   return p
+}
+
+// Use userData path so session survives across installs/updates
+function getSessionPath(): string {
+  return path.join(app.getPath('userData'), '.wwebjs_auth')
 }
 
 export class WhatsAppClient extends EventEmitter {
@@ -44,11 +47,14 @@ export class WhatsAppClient extends EventEmitter {
   private qrCode: string | null = null;
   private isAuthenticated = false;
   private isReady = false;
+  private isInitializing = false;
+  private initAttempts = 0;
 
   private createClient() {
     this.client = new Client({
       authStrategy: new LocalAuth({
-        clientId: 'whatsapp-bulk-session'
+        clientId: 'whatsapp-bulk-session',
+        dataPath: getSessionPath()
       }),
       puppeteer: {
         headless: true,
@@ -58,21 +64,30 @@ export class WhatsAppClient extends EventEmitter {
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
-          '--no-first-run',
           '--disable-gpu',
+          '--no-first-run',
+          '--no-zygote',
           '--disable-extensions',
           '--disable-default-apps',
+          '--disable-background-networking',
+          '--disable-sync',
+          '--disable-translate',
+          '--disable-features=site-per-process,TranslateUI',
+          '--disable-site-isolation-trials',
+          '--disable-web-security',
           '--mute-audio',
           '--no-default-browser-check',
-          '--disable-features=site-per-process',
-          '--disable-site-isolation-trials'
+          '--metrics-recording-only',
+          '--safebrowsing-disable-auto-update',
+          '--js-flags=--max-old-space-size=512',
         ],
+        timeout: 120000, // 2 min timeout for slow PCs
       },
       webVersionCache: {
         type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1017198850-alpha.html'
       },
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       bypassCSP: true
     });
     this.setupEventListeners();
@@ -100,102 +115,101 @@ export class WhatsAppClient extends EventEmitter {
     this.client.on('ready', () => {
       console.log('[WA] Ready');
       this.isReady = true;
+      this.isInitializing = false; // clear flag so re-init works if needed
       this.emit('ready');
     });
 
     this.client.on('auth_failure', (msg) => {
       console.error('[WA] Auth Failure:', msg);
-      this.emit('error', 'Authentication failure: ' + msg);
+      this.isInitializing = false;
+      this.emit('error', 'Authentication failed: ' + msg);
     });
 
     this.client.on('disconnected', (reason) => {
       console.warn('[WA] Disconnected:', reason);
       this.isReady = false;
       this.isAuthenticated = false;
+      this.isInitializing = false;
       this.emit('disconnected', reason);
     });
   }
 
-  private isInitializing = false;
-  private initAttempts = 0;
-
   async initialize() {
     if (this.isReady || this.isAuthenticated || this.isInitializing) {
-        console.log('[WA] Engine is already initializing or initialized.');
-        return;
+      console.log('[WA] Already initializing or initialized — skipping.');
+      return;
     }
     this.isInitializing = true;
     try {
-      console.log(`[WA] Starting initialization (Attempt ${this.initAttempts + 1})...`);
+      console.log(`[WA] Starting initialization (attempt ${this.initAttempts + 1})...`);
       await this.client.initialize();
-      this.initAttempts = 0; // Reset on successful init
+      this.initAttempts = 0;
     } catch (err: any) {
-      console.error('[WA] Initialization failed:', err);
+      console.error('[WA] Initialization error:', err);
       this.isInitializing = false;
-      const errMsg = err.message || 'Unknown error';
-      
-      // Auto-retry for frame detaching and context destruction network errors
-      if ((errMsg.includes('Navigating frame was detached') || errMsg.includes('Execution context was destroyed')) && this.initAttempts < 3) {
-        this.initAttempts++;
-        console.warn(`[WA] Browser background frame crash detected. Retrying ${this.initAttempts}/3 in 3s...`);
-        
-        try { await this.client.destroy(); } catch (_) { /* ignore */ }
-        this.createClient();
-        
-        setTimeout(() => {
-          this.initialize();
-        }, 3000);
-        return;
+      const msg = err.message || 'Unknown error';
+
+      // Retry on known transient browser crashes (up to 3 times)
+      const isTransient =
+        msg.includes('Navigating frame was detached') ||
+        msg.includes('Execution context was destroyed') ||
+        msg.includes('Session closed') ||
+        msg.includes('Target closed') ||
+        msg.includes('Protocol error') ||
+        msg.includes('net::ERR_')
+
+      if (isTransient && this.initAttempts < 3) {
+        this.initAttempts++
+        const delay = this.initAttempts * 4000 // 4s, 8s, 12s
+        console.warn(`[WA] Transient error — retrying (${this.initAttempts}/3) in ${delay / 1000}s...`)
+        try { await this.client.destroy() } catch (_) {}
+        this.createClient()
+        setTimeout(() => this.initialize(), delay)
+        return
       }
 
-      this.initAttempts = 0; // Reset after max retries
-      this.emit('error', 'Initialization error: ' + errMsg);
+      this.initAttempts = 0
+      this.emit('error', 'WhatsApp failed to start: ' + msg)
     }
   }
 
   async isRegistered(number: string) {
-    if (!this.isReady) throw new Error('WhatsApp client not ready');
-    // Format number: remove +, spaces, etc.
-    const sanitizedNumber = number.replace(/\D/g, '');
-    const finalNumber = sanitizedNumber.includes('@c.us') ? sanitizedNumber : `${sanitizedNumber}@c.us`;
-    
-    console.log(`[WA] Checking registration for: ${finalNumber}`);
-    const isRegistered = await this.client.isRegisteredUser(finalNumber);
-    console.log(`[WA] Result for ${finalNumber}: ${isRegistered ? 'REGISTERED' : 'NOT FOUND'}`);
-    
-    return isRegistered;
+    if (!this.isReady) throw new Error('WhatsApp not connected');
+    const sanitized = number.replace(/\D/g, '');
+    const final = sanitized.includes('@c.us') ? sanitized : `${sanitized}@c.us`;
+    console.log(`[WA] Checking: ${final}`);
+    const result = await this.client.isRegisteredUser(final);
+    console.log(`[WA] ${final}: ${result ? 'REGISTERED' : 'NOT FOUND'}`);
+    return result;
   }
 
   async logout() {
-    try {
-      await this.client.destroy()
-    } catch (_) { /* ignore */ }
-    this.isReady = false
-    this.isAuthenticated = false
-    this.isInitializing = false
-    this.qrCode = null
+    try { await this.client.destroy() } catch (_) {}
+    this.isReady = false;
+    this.isAuthenticated = false;
+    this.isInitializing = false;
+    this.qrCode = null;
 
-    // Wipe saved session so QR is required on next init
+    // Delete saved session so QR is shown on next init
     try {
-      const authPath = path.join(process.cwd(), '.wwebjs_auth', 'session-whatsapp-bulk-session')
-      if (fs.existsSync(authPath)) {
-        fs.rmSync(authPath, { recursive: true, force: true })
-        console.log('[WA] Session folder deleted')
+      const sessionPath = path.join(getSessionPath(), 'session-whatsapp-bulk-session')
+      if (fs.existsSync(sessionPath)) {
+        fs.rmSync(sessionPath, { recursive: true, force: true })
+        console.log('[WA] Session deleted')
       }
     } catch (e) {
-      console.error('[WA] Failed to delete session folder:', e)
+      console.error('[WA] Failed to delete session:', e)
     }
 
-    // Recreate a fresh client instance ready for next init
     this.createClient()
     this.emit('disconnected', 'logout')
   }
 
   async sendMessage(number: string, message: string) {
-    if (!this.isReady) throw new Error('WhatsApp client not ready');
-    const sanitizedNumber = number.replace(/\D/g, '');
-    const finalNumber = sanitizedNumber.includes('@c.us') ? sanitizedNumber : `${sanitizedNumber}@c.us`;
-    return await this.client.sendMessage(finalNumber, message);
+    if (!this.isReady) throw new Error('WhatsApp not connected');
+    const sanitized = number.replace(/\D/g, '');
+    const final = sanitized.includes('@c.us') ? sanitized : `${sanitized}@c.us`;
+    return await this.client.sendMessage(final, message);
   }
 
   getStatus() {

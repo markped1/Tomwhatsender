@@ -14,13 +14,8 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!node_modules/puppeteer/.local-chrome/**'
   - '!node_modules/puppeteer/.local-chromium/**'
-asarUnpack:
-  - resources/**
-  - node_modules/sql.js/dist/sql-wasm.wasm
-  - node_modules/puppeteer/.local-chrome/**/*
-  - node_modules/puppeteer/.local-chromium/**/*
-  - node_modules/@puppeteer/browsers/**/*
-  - node_modules/node-machine-id/**/*
+  - '!node_modules/@puppeteer/browsers/**'
+afterPack: build/afterPack.js
 electronFuses:
   enableEmbeddedAsarIntegrityValidation: false
   onlyLoadAppFromAsar: false

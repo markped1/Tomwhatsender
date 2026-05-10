@@ -23,7 +23,10 @@ interface LicenseCache {
 
 function regRead(): string | null {
   try {
-    const out = execSync(`reg query "${REG_KEY}" /v ${REG_VALUE} 2>nul`, { encoding: 'utf8' })
+    const out = execSync(`reg query "${REG_KEY}" /v ${REG_VALUE} 2>nul`, {
+      encoding: 'utf8',
+      windowsHide: true
+    })
     const match = out.match(/REG_SZ\s+(.+)/)
     return match ? match[1].trim() : null
   } catch (_) {
@@ -33,7 +36,10 @@ function regRead(): string | null {
 
 function regWrite(value: string): void {
   try {
-    execSync(`reg add "${REG_KEY}" /v ${REG_VALUE} /t REG_SZ /d "${value}" /f`, { encoding: 'utf8' })
+    execSync(`reg add "${REG_KEY}" /v ${REG_VALUE} /t REG_SZ /d "${value}" /f 2>nul`, {
+      encoding: 'utf8',
+      windowsHide: true
+    })
   } catch (_) {}
 }
 

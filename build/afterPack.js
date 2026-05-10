@@ -1,14 +1,36 @@
 /**
- * afterPack hook — copies bundled Chrome into app.asar.unpacked after packaging.
- * This keeps Chrome out of the traversal scan (which is what makes builds slow)
- * while still making it available at runtime.
+ * afterPack hook:
+ * 1. Manually flips Electron fuses to disable asar integrity validation
+ * 2. Copies bundled Chrome into app.asar.unpacked
  */
 const fs = require('fs')
 const path = require('path')
 
 exports.default = async function afterPack(context) {
-  const { appOutDir, packager } = context
+  const { appOutDir, packager, electronPlatformName } = context
   const projectDir = packager.projectDir
+
+  // ── 1. Flip Electron fuses to disable asar integrity check ──────────────────
+  // electron-builder's electronFuses config key is unreliable in v26 — do it manually
+  if (electronPlatformName === 'win32') {
+    try {
+      const { flipFuses, FuseVersion, FuseV1Options } = require('@electron/fuses')
+      const exeName = packager.appInfo.productFilename + '.exe'
+      const exePath = path.join(appOutDir, exeName)
+      if (fs.existsSync(exePath)) {
+        await flipFuses(exePath, {
+          version: FuseVersion.V1,
+          [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: false,
+          [FuseV1Options.OnlyLoadAppFromAsar]: false,
+        })
+        console.log('[afterPack] Fuses flipped — asar integrity validation disabled.')
+      } else {
+        console.warn('[afterPack] Exe not found at:', exePath)
+      }
+    } catch (e) {
+      console.warn('[afterPack] Could not flip fuses:', e.message)
+    }
+  }
 
   const chromeSrc = path.join(projectDir, 'node_modules', 'puppeteer', '.local-chrome')
   const chromeDest = path.join(appOutDir, 'resources', 'app.asar.unpacked', 'node_modules', 'puppeteer', '.local-chrome')

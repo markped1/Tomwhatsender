@@ -16,9 +16,6 @@ files:
   - '!node_modules/puppeteer/.local-chromium/**'
   - '!node_modules/@puppeteer/browsers/**'
 afterPack: build/afterPack.js
-electronFuses:
-  enableEmbeddedAsarIntegrityValidation: false
-  onlyLoadAppFromAsar: false
 win:
   executableName: WhatsAppBulkSender
   verifyUpdateCodeSignature: false

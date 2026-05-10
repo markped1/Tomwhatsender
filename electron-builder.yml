@@ -22,6 +22,8 @@ electronFuses:
 win:
   executableName: WhatsAppBulkSender
   verifyUpdateCodeSignature: false
+  signAndEditExecutable: false
+  signExts: []
 nsis:
   oneClick: true
   perMachine: false

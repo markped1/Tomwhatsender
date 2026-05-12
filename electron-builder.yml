@@ -9,13 +9,14 @@ files:
   - '!.wwebjs_auth/**'
   - '!.wwebjs_cache/**'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-  - '!node_modules/puppeteer/.local-chrome/**'
-  - '!node_modules/puppeteer/.local-chromium/**'
-  - '!node_modules/@puppeteer/browsers/**'
-afterPack: build/afterPack.js
+extraResources:
+  - from: node_modules/puppeteer/.local-chrome
+    to: app.asar.unpacked/node_modules/puppeteer/.local-chrome
+  - from: node_modules/node-machine-id
+    to: app.asar.unpacked/node_modules/node-machine-id
+  - from: node_modules/sql.js/dist/sql-wasm.wasm
+    to: app.asar.unpacked/node_modules/sql.js/dist/sql-wasm.wasm
 win:
   executableName: WhatsAppBulkSender
   verifyUpdateCodeSignature: false
@@ -27,32 +28,12 @@ nsis:
   allowElevation: false
   allowToChangeInstallationDirectory: false
   runAfterFinish: true
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
+  artifactName: WhatsAppBulkSender-Setup.exe
+  shortcutName: WhatsApp Bulk Sender
+  uninstallDisplayName: WhatsApp Bulk Sender
   createDesktopShortcut: always
-mac:
-  entitlementsInherit: build/entitlements.mac.plist
-  extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
-dmg:
-  artifactName: ${name}-${version}.${ext}
-linux:
-  target:
-    - AppImage
-    - snap
-    - deb
-  maintainer: electronjs.org
-  category: Utility
-appImage:
-  artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 nodeGypRebuild: false
-buildDependenciesFromSource: false
 nativeRebuilder: sequential
 publish:
   provider: generic

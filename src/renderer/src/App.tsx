@@ -51,7 +51,9 @@ function App() {
   const [isSending, setIsSending] = useState(false)
   const isSendingRef = useRef(false)
   const logEndRef = useRef<HTMLDivElement>(null)
-  const [contactStatuses, setContactStatuses] = useState<Record<string, 'pending' | 'sending' | 'sent' | 'failed'>>({})
+  const [contactStatuses, setContactStatuses] = useState<Record<string, 'pending' | 'typing' | 'sending' | 'sent' | 'failed'>>({})
+  const [campaignTypingIndex, setCampaignTypingIndex] = useState<number | null>(null)
+  const [campaignTypedMessage, setCampaignTypedMessage] = useState('')
   const [dailyLimit, setDailyLimit] = useState(300)
   const [minDelay, setMinDelay] = useState(45)
   const [maxDelay, setMaxDelay] = useState(120)
@@ -173,7 +175,7 @@ function App() {
            await api.addContacts([lead])
          }
        } catch (e: any) { console.error(e) }
-       // Randomized delay 3–8s between checks to avoid detection
+       // Randomized delay 3â€“8s between checks to avoid detection
        const delay = 3000 + Math.random() * 5000
        await new Promise(r => setTimeout(r, delay))
     }
@@ -275,24 +277,39 @@ function App() {
 
   const [quickPhone, setQuickPhone] = useState('')
   const [isSendingQuick, setIsSendingQuick] = useState(false)
+  const [isTypingQuick, setIsTypingQuick] = useState(false)
+  const [typedMessage, setTypedMessage] = useState('')
 
+  // Human-style typing effect for quick send
   const handleQuickSend = async () => {
     const api = (window as any).api
     if (!api || !status.isReady) { setError('Connect WhatsApp first'); return }
     if (!quickPhone.trim()) { setError('Enter a phone number'); return }
     if (!messageTemplate.trim()) { setError('Type a message first'); return }
+    setIsTypingQuick(true)
+    setTypedMessage('')
+    let finalMessage = messageTemplate.replace('{name}', '')
+    if (isSmartTwistEnabled) finalMessage = twistMessage(finalMessage, 0.3)
+    // Animate typing
+    for (let i = 1; i <= finalMessage.length; i++) {
+      setTypedMessage(finalMessage.slice(0, i))
+      // Simulate human typing speed (random 30-80ms per char)
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise(r => setTimeout(r, 30 + Math.random() * 50))
+    }
+    setIsTypingQuick(false)
     setIsSendingQuick(true)
     try {
-      let finalMessage = messageTemplate.replace('{name}', '')
-      if (isSmartTwistEnabled) finalMessage = twistMessage(finalMessage, 0.3)
       await api.sendMessage({ phone: quickPhone.replace(/\D/g, ''), message: finalMessage })
       setSuccess(`Sent to ${quickPhone}`)
       setQuickPhone('')
+      setTypedMessage('')
       await loadData()
     } catch (e: any) {
       setError(`Failed: ${e.message}`)
     }
     setIsSendingQuick(false)
+    setTypedMessage('')
   }
 
   const handleActivateLicense = async () => {
@@ -322,24 +339,39 @@ function App() {
     setIsSending(true)
     isSendingRef.current = true
 
-    const initial: Record<string, 'pending' | 'sending' | 'sent' | 'failed'> = {}
+    const initial: Record<string, 'pending' | 'typing' | 'sending' | 'sent' | 'failed'> = {}
     contacts.forEach(c => { initial[c.phone] = 'pending' })
     setContactStatuses(initial)
+    setCampaignTypingIndex(null)
+    setCampaignTypedMessage('')
 
     const DAILY_LIMIT = dailyLimit
     let sentToday = 0
 
-    for (const contact of contacts) {
+    for (let idx = 0; idx < contacts.length; idx++) {
+      const contact = contacts[idx]
       if (!isSendingRef.current) break
       if (sentToday >= DAILY_LIMIT) {
         setError(`Daily limit of ${DAILY_LIMIT} messages reached.`)
         break
       }
 
+      // Typing effect
+      setContactStatuses(prev => ({ ...prev, [contact.phone]: 'typing' }))
+      setCampaignTypingIndex(idx)
+      let finalMessage = messageTemplate.replace('{name}', contact.name || '')
+      if (isSmartTwistEnabled) finalMessage = twistMessage(finalMessage, 0.3)
+      setCampaignTypedMessage('')
+      for (let i = 1; i <= finalMessage.length; i++) {
+        setCampaignTypedMessage(finalMessage.slice(0, i))
+        // Simulate human typing speed (random 30-80ms per char)
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, 30 + Math.random() * 50))
+      }
       setContactStatuses(prev => ({ ...prev, [contact.phone]: 'sending' }))
+      setCampaignTypingIndex(null)
+      setCampaignTypedMessage('')
       try {
-        let finalMessage = messageTemplate.replace('{name}', contact.name || '')
-        if (isSmartTwistEnabled) finalMessage = twistMessage(finalMessage, 0.3)
         await api.sendMessage({ phone: contact.phone, message: finalMessage })
         setContactStatuses(prev => ({ ...prev, [contact.phone]: 'sent' }))
         sentToday++
@@ -356,6 +388,8 @@ function App() {
 
     setIsSending(false)
     isSendingRef.current = false
+    setCampaignTypingIndex(null)
+    setCampaignTypedMessage('')
   }
 
   return (
@@ -377,8 +411,8 @@ function App() {
         </div>
         {license && !license.trialExpired && license.hoursLeft > 0 && (
           <div className="bg-yellow-400 text-black px-2 py-0.5 flex items-center justify-between text-[7px] font-black">
-            <span>⏳ TRIAL: {Math.floor(license.hoursLeft)}h {Math.floor((license.hoursLeft % 1) * 60)}m remaining</span>
-            <button onClick={() => setActiveTab('settings')} className="bg-black/10 hover:bg-black/20 px-1.5 py-0.5 rounded uppercase tracking-wider transition-colors">Activate Now →</button>
+            <span>â³ TRIAL: {Math.floor(license.hoursLeft)}h {Math.floor((license.hoursLeft % 1) * 60)}m remaining</span>
+            <button onClick={() => setActiveTab('settings')} className="bg-black/10 hover:bg-black/20 px-1.5 py-0.5 rounded uppercase tracking-wider transition-colors">Activate Now â†’</button>
           </div>
         )}
       </header>
@@ -415,8 +449,8 @@ function App() {
                      </div>
                      <div className="relative flex-1">
                         <textarea 
-                          value={messageTemplate}
-                          onChange={(e) => setMessageTemplate(e.target.value)}
+                          value={isTypingQuick ? typedMessage : messageTemplate}
+                          onChange={(e) => { if (!isTypingQuick) setMessageTemplate(e.target.value) }}
                           placeholder="Type message..."
                           className="w-full h-full p-2 bg-[#F8F9FA] border rounded outline-none text-[10px] font-bold resize-none"
                         />
@@ -431,16 +465,17 @@ function App() {
                         <input
                           value={quickPhone}
                           onChange={e => setQuickPhone(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && handleQuickSend()}
+                          onKeyDown={e => e.key === 'Enter' && !isTypingQuick && !isSendingQuick && handleQuickSend()}
                           placeholder="Quick send: +2348..."
                           className="flex-1 p-1 border rounded text-[9px] font-bold outline-none focus:border-[#00A884] bg-[#F8F9FA]"
+                          disabled={isTypingQuick || isSendingQuick}
                         />
                         <button
                           onClick={handleQuickSend}
                           disabled={!status.isReady || isSendingQuick}
                           className="px-2 py-1 bg-[#128C7E] text-white rounded font-black text-[8px] uppercase disabled:opacity-40 active:scale-95 transition-all shrink-0"
                         >
-                          {isSendingQuick ? '...' : 'SEND'}
+                          {isTypingQuick ? 'Typing...' : isSendingQuick ? '...' : 'SEND'}
                         </button>
                      </div>
                      <div className="mt-1 flex items-center justify-between shrink-0">
@@ -478,7 +513,7 @@ function App() {
                            <span className="text-[7px] font-black text-[#00A884] bg-[#00A884]/10 px-1 py-0.5 rounded">
                              {sendRatePreset !== 'custom'
                                ? RATE_PRESETS.find(p => p.id === sendRatePreset)?.label
-                               : `${minDelay}–${maxDelay}s`}
+                               : `${minDelay}â€“${maxDelay}s`}
                            </span>
                            <span className="text-[7px] font-black text-gray-400">{contacts.filter(c => contactStatuses[c.phone] === 'sent').length}/{contacts.length}</span>
                            <button
@@ -496,25 +531,31 @@ function App() {
                            contacts.map((contact, i) => {
                               const st = contactStatuses[contact.phone] || contact.status || 'pending'
                               return (
-                                 <div key={i} className="flex items-center gap-1.5 px-1.5 py-1 border-b border-black/[0.04] last:border-0">
-                                    {/* Status indicator */}
-                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                       st === 'sent' ? 'bg-[#25D366]' :
-                                       st === 'failed' ? 'bg-red-400' :
-                                       st === 'sending' ? 'bg-yellow-400 animate-pulse' :
-                                       'bg-gray-200'
-                                    }`} />
-                                    <span className="text-[8px] font-bold text-[#128C7E] truncate flex-1">+{contact.phone}</span>
-                                    <span className="text-[7px] text-gray-300 truncate max-w-[40px]">{contact.name}</span>
-                                    <span className={`text-[7px] font-black shrink-0 ${
-                                       st === 'sent' ? 'text-[#25D366]' :
-                                       st === 'failed' ? 'text-red-400' :
-                                       st === 'sending' ? 'text-yellow-500' :
-                                       'text-gray-300'
-                                    }`}>
-                                       {st === 'sent' ? '✓' : st === 'failed' ? '✗' : st === 'sending' ? '...' : '–'}
-                                    </span>
-                                 </div>
+                                <div key={i} className="flex items-center gap-1.5 px-1.5 py-1 border-b border-black/[0.04] last:border-0">
+                                  {/* Status indicator */}
+                                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                    st === 'sent' ? 'bg-[#25D366]' :
+                                    st === 'failed' ? 'bg-red-400' :
+                                    st === 'sending' ? 'bg-yellow-400 animate-pulse' :
+                                    st === 'typing' ? 'bg-blue-400 animate-pulse' :
+                                    'bg-gray-200'
+                                  }`} />
+                                  <span className="text-[8px] font-bold text-[#128C7E] truncate flex-1">+{contact.phone}</span>
+                                  <span className="text-[7px] text-gray-300 truncate max-w-[40px]">{contact.name}</span>
+                                  <span className={`text-[7px] font-black shrink-0 ${
+                                    st === 'sent' ? 'text-[#25D366]' :
+                                    st === 'failed' ? 'text-red-400' :
+                                    st === 'sending' ? 'text-yellow-500' :
+                                    st === 'typing' ? 'text-blue-500' :
+                                    'text-gray-300'
+                                  }`}>
+                                    {st === 'sent' ? 'âœ“' : st === 'failed' ? 'âœ—' : st === 'sending' ? '...' : st === 'typing' ? 'Typing...' : 'â€“'}
+                                  </span>
+                                  {/* Show typing message preview for the current contact */}
+                                  {st === 'typing' && campaignTypingIndex === i && (
+                                    <span className="ml-2 text-[7px] font-mono text-blue-500 truncate max-w-[120px]">{campaignTypedMessage}</span>
+                                  )}
+                                </div>
                               )
                            })
                         )}
@@ -560,7 +601,7 @@ function App() {
                      </div>
                      <span className="text-[6px] text-gray-300">
                        {sendRatePreset !== 'custom'
-                         ? `≈ 1 message every ${RATE_PRESETS.find(p => p.id === sendRatePreset)?.label.split('/ ')[1]} — delay auto-set`
+                         ? `â‰ˆ 1 message every ${RATE_PRESETS.find(p => p.id === sendRatePreset)?.label.split('/ ')[1]} â€” delay auto-set`
                          : 'Set your own min/max delay below'}
                      </span>
                    </div>
@@ -576,7 +617,7 @@ function App() {
                        />
                        <span className="text-[7px] text-gray-400 shrink-0">msgs/day</span>
                      </div>
-                     <span className="text-[6px] text-gray-300">Recommended: 200–500 for aged numbers</span>
+                     <span className="text-[6px] text-gray-300">Recommended: 200â€“500 for aged numbers</span>
                    </div>
 
                    <div className="flex gap-2">
@@ -605,7 +646,7 @@ function App() {
                        </div>
                      </div>
                    </div>
-                   <span className="text-[6px] text-gray-300">Random delay between {minDelay}–{maxDelay}s per message. Higher = safer.</span>
+                   <span className="text-[6px] text-gray-300">Random delay between {minDelay}â€“{maxDelay}s per message. Higher = safer.</span>
 
                    <div className="border-t pt-3 flex flex-col gap-1">
                      <span className="font-black text-[9px] text-gray-500 uppercase">Anti-Ban Tips</span>
@@ -614,24 +655,24 @@ function App() {
                        <li>Start with 50/day, increase gradually</li>
                        <li>Keep Smart Twist ON always</li>
                        <li>Avoid sending same message twice</li>
-                       <li>Don&apos;t run 24/7 — take breaks</li>
+                       <li>Don&apos;t run 24/7 â€” take breaks</li>
                      </ul>
                    </div>
 
-                   {/* License Activation — always visible so users can activate anytime */}
+                   {/* License Activation â€” always visible so users can activate anytime */}
                    <div className="border-t pt-3 flex flex-col gap-2">
                      <div className="flex items-center justify-between">
                        <span className="font-black text-[9px] text-gray-500 uppercase">License</span>
                        {license?.valid && !license?.trialExpired && license?.hoursLeft === 0 && (
-                         <span className="text-[7px] font-black text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded">✓ ACTIVATED</span>
+                         <span className="text-[7px] font-black text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded">âœ“ ACTIVATED</span>
                        )}
                        {license?.valid && license?.hoursLeft > 0 && (
                          <span className="text-[7px] font-black text-yellow-600 bg-yellow-50 px-1.5 py-0.5 rounded">
-                           ⏳ {Math.floor(license.hoursLeft)}h {Math.floor((license.hoursLeft % 1) * 60)}m trial left
+                           â³ {Math.floor(license.hoursLeft)}h {Math.floor((license.hoursLeft % 1) * 60)}m trial left
                          </span>
                        )}
                        {license?.trialExpired && (
-                         <span className="text-[7px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded">✗ EXPIRED</span>
+                         <span className="text-[7px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded">âœ— EXPIRED</span>
                        )}
                      </div>
                      {license?.hoursLeft === 0 && !license?.trialExpired ? (
@@ -710,7 +751,7 @@ function App() {
                                  </div>
                                  <div className="flex flex-col items-end shrink-0 gap-0.5">
                                     <span className={`text-[7px] font-black ${log.status === 'sent' ? 'text-[#25D366]' : 'text-red-400'}`}>
-                                       {log.status === 'sent' ? '✓ SENT' : '✗ FAIL'}
+                                       {log.status === 'sent' ? 'âœ“ SENT' : 'âœ— FAIL'}
                                     </span>
                                     <span className="text-[6px] text-gray-300 font-mono">
                                        {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -756,7 +797,7 @@ function App() {
                         {extractionResults.length > 0 && (
                           <>
                             <button onClick={handleExportLeads} className="px-2 py-1.5 rounded bg-gray-100 text-gray-500 font-black text-[8px] uppercase hover:bg-gray-200 transition-colors">CSV</button>
-                            <button onClick={handleTransferToCampaign} className="px-2 py-1.5 rounded bg-[#00A884] text-white font-black text-[8px] uppercase hover:bg-[#009272] transition-colors">→ Campaign</button>
+                            <button onClick={handleTransferToCampaign} className="px-2 py-1.5 rounded bg-[#00A884] text-white font-black text-[8px] uppercase hover:bg-[#009272] transition-colors">â†’ Campaign</button>
                           </>
                         )}
                      </div>
@@ -798,7 +839,7 @@ function App() {
                </section>
              )}
 
-             {/* Lead Results sidebar — only show on campaign tab */}
+             {/* Lead Results sidebar â€” only show on campaign tab */}
              {activeTab === 'campaign' && (
                <aside className="w-[110px] bg-white rounded border flex flex-col overflow-hidden shrink-0 shadow-sm">
                 <div className="p-1 px-1.5 border-b bg-[#F0F2F5] shrink-0 flex items-center justify-between text-[7px] font-black">
@@ -852,14 +893,14 @@ function App() {
         </div>
       </div>
 
-      {/* License Gate — shown when trial expires */}
+      {/* License Gate â€” shown when trial expires */}
       {license?.trialExpired && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div className="bg-white rounded-xl w-[200px] overflow-hidden shadow-2xl">
             <div className="p-2 bg-[#128C7E] text-white text-center font-black text-[9px] uppercase tracking-widest">LICENSE REQUIRED</div>
             <div className="p-4 flex flex-col gap-3">
               <div className="text-center">
-                <div className="text-2xl mb-1">🔒</div>
+                <div className="text-2xl mb-1">ðŸ”’</div>
                 <p className="text-[8px] font-black text-gray-500 uppercase tracking-wide">Trial period expired</p>
                 <p className="text-[7px] text-gray-400 mt-0.5">Enter your serial key to continue</p>
               </div>

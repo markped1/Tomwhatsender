@@ -10,6 +10,7 @@ files:
 win:
   target: nsis
   executableName: TomWhatsBulkKeygen
+  verifyUpdateCodeSignature: false
 nsis:
   oneClick: true
   perMachine: false
